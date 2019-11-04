@@ -72,17 +72,22 @@ The result of basic tests return one of three results:
 * **false** if the test is negative
 * **null** if the target value is invalid
 
+note, they are properties, not methods/functions
+
 ### isPositive
 ### isNegative
 ### isZero
 ### isInfinte
 ### isInfiniteNeg
-### isInvalid
-### isValid
 ### isWhole
 
-These tests are mutually exclusive. note, they are properties, not 
-methods/functions
+validation tests never return null.
+
+* **true** if the test is positive
+* **false** if the test is negative
+
+### isInvalid
+### isValid
 
 ``` javascript
 
