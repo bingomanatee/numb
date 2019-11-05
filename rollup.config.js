@@ -6,7 +6,8 @@ module.exports = {
   input: 'src/index.js',
   plugins: [resolve(),
     commonjs(),
-    terser()],
+    terser(),
+  ],
   output: {
     file: 'lib/index.js',
     format: 'umd',

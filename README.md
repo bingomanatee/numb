@@ -6,12 +6,15 @@ verbose branchy logic for numbers, and hacky code to fix wierd values?
 Don't you wish there were some sort of lodash currying system
 for numbers? 
 
-Numb is that. 
+Numb is that. it is a compact(<10kb) library that helps you sanitize
+and transform numbers in a quick, compact manner. 
 
 ## constructor
 
 Numb takes a value and an optional hook for fixing bad data. 
-It also accepts a synchronous function that will be caught
+It also accepts a synchronous function that will be caught.
+
+_N extracts nested values from other _N's. 
 
 ```javascript
 
@@ -19,6 +22,8 @@ console.log(_N(3).value);
 // 3
 console.log(_N('3').value);
 // 3 (coerced to number)
+console.log(_N(_N(4)).value);
+// 4
 
 function divide(a, b) {
     if (b === 0) throw new Error('divide by zero');
@@ -40,6 +45,16 @@ console.log(_N(() => divide(0, 'string'),
 // -1
 
 ```
+
+## `firstGood(...)` static method 
+
+```javascript
+_N().firstGood('string', [NaN, null, {a: 'foo', b: 100}, 2, 4], 4, NaN)
+```
+
+will find the first good value (2 in this case) in a flattened
+list of all arguments. firstGood is a "static like" method - it ignores
+the value of the initial _N(..). 
 
 ## reflection 
 
@@ -70,7 +85,7 @@ The result of basic tests return one of three results:
 
 * **true** if the test is positive
 * **false** if the test is negative
-* **null** if the target value is invalid
+* **null** if the target value is ifInvalid
 
 note, they are properties, not methods/functions
 
@@ -91,7 +106,7 @@ validation tests never return null.
 
 ``` javascript
 
-import _N from '@wonderlandlabs/num';
+import _N from '@wonderlandlabs/numb';
 
 console.log(_N(10).isPositive); 
 // true
@@ -134,7 +149,7 @@ Tests which require a comparator;
 ### isEq(value)
 ### isMult(divisor)
 
-note that invalid input *or* comparator returns null;
+note that ifInvalid input *or* comparator returns null;
 null and false are both "falsy" so take care to evaluate return value carefully.
 
 ```javascript
@@ -167,23 +182,92 @@ console.log(_N(3).fix((value) => Array.isArray(value) ? value[0] : 0).value);
 // 3
 ```
 
-## Validation switches
+## transformers
+
+Transformer methods return a new Numb with the result of common number transform
+calculations. They all return new _N instances; so require `.value` suffixes to 
+get value. The good news is they can be chained.
+
+Unary transformers
+
+## sq()
+## sqrt(abs)
+## log()
+## log10()
+if (abs === true) then sqrt of -4 is -2;
+## abs()
+## absN() 
+## pi() 
+always negative
+## ceil()
+## floor()
+## negate() *= -1
+
+Binary transformers:
+
+### add(n)
+### sub(n)
+### plus(n) 
+### minus(n)
+### times(n)
+### div(n)
+### pow(n)
+
+Trigonometers:
+
+### sin(isDeg)
+### cos(isDeg)
+### tan(isDeg)
+### arcSin(toDeg)
+### arcCos(toDeg)
+### arcTan(toDeg)
+
+Parameteric transformers
+
+### clamp(limit, limit2) | clamp([limit, limit2])
+clamp will return a value between the two limits,
+regardless of order
+### min(...values)
+### max(...values)
+### sum(...value)
+min max and sum include the n's current value
+### minS
+### maxS
+### 
+
+Transformers should never throw -- worst case, they result in NaN.
+
+```javascript
+
+console.log(
+    _N(
+      _N().firstGood('a', 2, 'b'),
+    ).max(20)
+      .times(4)
+      .plus(1)
+      .sqrt()
+      .value
+    );
+// 9
+```
+
+## Fork functions
 
 While you can use these methods in branching logic,
 its more useful to listen to multiple branches defined by a test.
 The validation methods have the same signature:
 
-* `test(ifTrue, [? if false, [? if invalid]])`
+* `test(ifTrue, [? if false, [? if ifInvalid]])`
 
-### valid(ifTrue, ifFalse)
-### positive(ifTrue, ifFalse, ifInvalid)
-### negative(ifTrue, ifFalse, ifInvalid)
-### zero(ifTrue, ifFalse, ifInvalid)
-### infinite(ifTrue, ifFalse, ifInvalid)
-### infiniteNeg(ifTrue, ifFalse, ifInvalid)
+### ifValid(ifTrue, ifFalse)
+### ifPositive(ifTrue, ifFalse, ifInvalid)
+### ifNegative(ifTrue, ifFalse, ifInvalid)
+### ifZero(ifTrue, ifFalse, ifInvalid)
+### ifInfinite(ifTrue, ifFalse, ifInvalid)
+### ifInfiniteNeg(ifTrue, ifFalse, ifInvalid)
 
-* the **ifTrue** and **ifFalse** handler is passed the processed (valid value).
-* the **ifInvalid** method is passed as a parameter the original unprocessed (invalid) value. 
+* the **ifTrue** and **ifFalse** handler is passed the processed (ifValid value).
+* the **ifInvalid** method is passed as a parameter the original unprocessed (ifInvalid) value. 
 
 ```javascript
 
@@ -195,14 +279,14 @@ const user = {
 const articles = await articleAPI.get(user.userName);
 
 _N(_.get(articles, 'length'))
-.valid((l) =>{
+.ifValid((l) =>{
 	user.hasArticles = true; 
 	u.articles = articles;
 	});
 
 // or for a binary treatment:
 _N(_.get(articles, 'length'))
-.valid((l) =>{
+.ifValid((l) =>{
 	user.hasArticles = true; 
 	u.articles = articles;
 	}, 
@@ -216,7 +300,7 @@ _N(_.get(articles, 'length'))
 #### `else()` chaining
 
 Alternately you can call an `else(fn)` hook to trigger when the test fails. 
-Note, the else clause will also trigger on invalid data. 
+Note, the else clause will also trigger on ifInvalid data. 
 
 
 ```javascript
@@ -229,7 +313,7 @@ const user = {
 const articles = await articleAPI.get(user.userName);
 
 _N(_.get(articles, 'length', 'no length'))
-.valid((l) =>{
+.ifValid((l) =>{
 	user.hasArticles = true; 
 	u.articles = articles;
 	})
@@ -251,32 +335,32 @@ is called with the value, *and* additional tests will execute
 let called = '';
 
  _N(-2)
-    .invalid((n) => {
-      called = `${n} is invalid`;
+    .ifInvalid((n) => {
+      called = `${n} is ifInvalid`;
     })
-    .else((n) => called = `${n} is valid`)
-    .positive((n) => {
+    .else((n) => called = `${n} is ifValid`)
+    .ifPositive((n) => {
       called = _.trim(`${called} ${n} is positive`);
     })
     .else((n) => {
       called = _.trim(`${called} ${n} is non-positive`);
     });
 console.log('called: ', called);
-// -2 is valid -2 is non-positive;
+// -2 is ifValid -2 is non-positive;
 
  _N('bad value')
-    .invalid((n) => {
-      called = `${n} is invalid`;
+    .ifInvalid((n) => {
+      called = `${n} is ifInvalid`;
     })
-    .else((n) => called = `${n} is valid`)
-    .positive((n) => {
+    .else((n) => called = `${n} is ifValid`)
+    .ifPositive((n) => {
       called = _.trim(`${called} ${n} is positive`);
     })
     .else((n) => {
       called = _.trim(`${called} ${n} is non-positive`);
     });
 console.log('called: ', called);
-// 'bad value is invalid'
+// 'bad value is ifInvalid'
 
 ```
 note how neither the function in the else clause NOR

@@ -5,6 +5,12 @@ const p = require('./../package.json');
 
 const _N = require('./../lib/index');
 
+const fComp = (t, a, b, comment) => t.same(a.toFixed(4), b.toFixed(4), comment);
+const extendF = (suite) => {
+  suite.sameF = (...args) => fComp(suite, ...args);
+  return suite;
+};
+
 tap.test(p.name, (suite) => {
   suite.test('_N', (testNumb) => {
     testNumb.test('constructor', (c) => {
@@ -37,26 +43,26 @@ tap.test(p.name, (suite) => {
     });
 
     testNumb.test('validation', (v) => {
-      v.test('number - valid', (vn) => {
+      v.test('number - ifValid', (vn) => {
         const numb1 = _N(1);
 
         vn.equal(numb1.value, 1, 'set value to 1');
-        vn.ok(numb1.isValid, '1 is a valid number');
+        vn.ok(numb1.isValid, '1 is a ifValid number');
 
         const numb0 = _N(0);
 
         vn.equal(numb0.value, 0, 'set value to 0');
-        vn.ok(numb0.isValid, '0 is a valid number');
+        vn.ok(numb0.isValid, '0 is a ifValid number');
 
         const numbPI = _N(Math.PI);
 
         vn.equal(numbPI.value, Math.PI, 'set value to PI');
-        vn.ok(numbPI.isValid, 'PI is a valid number');
+        vn.ok(numbPI.isValid, 'PI is a ifValid number');
 
         const numbNegPi = _N(Math.PI * -1);
 
         vn.equal(numbNegPi.value, Math.PI * -1, 'set value to PI');
-        vn.ok(numbNegPi.isValid, '-PI is a valid number');
+        vn.ok(numbNegPi.isValid, '-PI is a ifValid number');
 
         vn.end();
       });
@@ -65,21 +71,21 @@ tap.test(p.name, (suite) => {
         const numb1 = _N('1');
 
         vn.equal(numb1.value, 1, 'set value to 1');
-        vn.ok(numb1.isValid, '1 is a valid number');
+        vn.ok(numb1.isValid, '1 is a ifValid number');
 
         const numb0 = _N('0');
 
         vn.equal(numb0.value, 0, 'set value to 0');
-        vn.ok(numb0.isValid, '0 is a valid number');
+        vn.ok(numb0.isValid, '0 is a ifValid number');
 
         const numbPI = _N(`${Math.PI}`);
 
         vn.equal(numbPI.value, Math.PI, 'set value to PI');
-        vn.ok(numbPI.isValid, 'PI is a valid number');
+        vn.ok(numbPI.isValid, 'PI is a ifValid number');
 
         const numbNegPi = _N(`${Math.PI * -1}`);
         vn.equal(numbNegPi.value, Math.PI * -1, 'set value to PI');
-        vn.ok(numbNegPi.isValid, '-PI is a valid number');
+        vn.ok(numbNegPi.isValid, '-PI is a ifValid number');
 
         const invalidString = _N('not a number');
 
@@ -91,21 +97,21 @@ tap.test(p.name, (suite) => {
         const numb1 = _N(' 1 ');
 
         vn.equal(numb1.value, 1, 'set value to 1');
-        vn.ok(numb1.isValid, '1 is a valid number');
+        vn.ok(numb1.isValid, '1 is a ifValid number');
 
         const numb0 = _N(' 0 ');
 
         vn.equal(numb0.value, 0, 'set value to 0');
-        vn.ok(numb0.isValid, '0 is a valid number');
+        vn.ok(numb0.isValid, '0 is a ifValid number');
 
         const numbPI = _N(`   ${Math.PI}   `);
 
         vn.equal(numbPI.value, Math.PI, 'set value to PI');
-        vn.ok(numbPI.isValid, 'PI is a valid number');
+        vn.ok(numbPI.isValid, 'PI is a ifValid number');
 
         const numbNegPi = _N(`    ${Math.PI * -1}   `);
         vn.equal(numbNegPi.value, Math.PI * -1, 'set value to PI');
-        vn.ok(numbNegPi.isValid, '-PI is a valid number');
+        vn.ok(numbNegPi.isValid, '-PI is a ifValid number');
 
         vn.end();
       });
@@ -125,6 +131,11 @@ tap.test(p.name, (suite) => {
         // ln.same(bigNum.value, 2n ** 53n);
 
         ln.end();
+      });
+
+      v.test('gt', (gt) => {
+        gt.ok(_N(10).isGT(5));
+        gt.end();
       });
       v.end();
     });
@@ -173,7 +184,7 @@ tap.test(p.name, (suite) => {
       q.test('isInfinite', (p) => {
         p.same(_N(Number.POSITIVE_INFINITY).isInfinite, true, 'isInfinite is true');
         p.same(_N(100).isInfinite, false, 'isInfinite is false');
-        p.same(_N('str)').isInfinite, null, 'invalid value is null');
+        p.same(_N('str)').isInfinite, null, 'ifInvalid value is null');
 
         p.end();
       });
@@ -184,7 +195,7 @@ tap.test(p.name, (suite) => {
     testNumb.test('currying', (c) => {
       c.test('valid', (cValid) => {
         let called = null;
-        _N(1).valid((n) => {
+        _N(1).ifValid((n) => {
           called = `${n} is valid`;
         }).else((n) => {
           called = `${n} is invalid`;
@@ -195,7 +206,7 @@ tap.test(p.name, (suite) => {
 
       c.test('invalid', (cInvalid) => {
         let called = null;
-        _N('not a number').valid((n) => {
+        _N('not a number').ifValid((n) => {
           called = `${n} is valid`;
         }).else((n) => {
           called = `${n} is invalid`;
@@ -207,7 +218,7 @@ tap.test(p.name, (suite) => {
       c.test('positive', (cPositive) => {
         cPositive.test('else syntax', (cPosElse) => {
           let called = null;
-          _N(2).positive((n) => {
+          _N(2).ifPositive((n) => {
             called = `${n} is positive`;
           }).else((n) => {
             called = `${n} is non-positive`;
@@ -218,7 +229,7 @@ tap.test(p.name, (suite) => {
 
         cPositive.test('functional - true', (cPosFn) => {
           let called = null;
-          _N(2).positive((n) => {
+          _N(2).ifPositive((n) => {
             called = `${n} is positive`;
           }, (n) => {
             called = `${n} is non-positive`;
@@ -232,7 +243,7 @@ tap.test(p.name, (suite) => {
 
         cPositive.test('functional - false', (cPosFn) => {
           let called = null;
-          _N(-2).positive((n) => {
+          _N(-2).ifPositive((n) => {
             called = `${n} is positive`;
           }, (n) => {
             called = `${n} is non-positive`;
@@ -246,7 +257,7 @@ tap.test(p.name, (suite) => {
 
         cPositive.test('functional - invalid', (cPosFn) => {
           let called = null;
-          _N('blah').positive((n) => {
+          _N('blah').ifPositive((n) => {
             called = `${n} is positive`;
           }, (n) => {
             called = `${n} is non-positive`;
@@ -263,7 +274,7 @@ tap.test(p.name, (suite) => {
 
       c.test('non-positive', (cNonPos) => {
         let called = null;
-        _N(-2).positive((n) => {
+        _N(-2).ifPositive((n) => {
           called = `${n} is positive`;
         })
           .else((n) => {
@@ -273,16 +284,16 @@ tap.test(p.name, (suite) => {
         cNonPos.end();
       });
 
-      c.test('valid plus positive', (cValPos) => {
+      c.test('ifValid plus positive', (cValPos) => {
         cValPos.test('VPP for negative number', (c4neg) => {
           let called = '';
 
           _N(-2)
-            .invalid((n) => {
+            .ifInvalid((n) => {
               called = `${n} is invalid`;
             })
             .else((n) => called = `${n} is valid`)
-            .positive((n) => {
+            .ifPositive((n) => {
               called = _.trim(`${called} ${n} is positive`);
             })
             .else((n) => {
@@ -296,11 +307,11 @@ tap.test(p.name, (suite) => {
         cValPos.test('for positive number', (c4pos) => {
           let called = '';
           _N(2)
-            .invalid((n) => {
+            .ifInvalid((n) => {
               called = `${n} is invalid`;
             })
             .else()
-            .positive((n) => {
+            .ifPositive((n) => {
               called = _.trim(`${called} ${n} is positive`);
             })
             .else((n) => {
@@ -314,11 +325,11 @@ tap.test(p.name, (suite) => {
         cValPos.test('for non number', (c4nn) => {
           let called = '';
           _N('a bad string')
-            .invalid((n) => {
+            .ifInvalid((n) => {
               called = `${n} is invalid`;
             })
             .else()
-            .positive((n) => {
+            .ifPositive((n) => {
               called = _.trim(`${called} ${n} is positive`);
             })
             .else((n) => {
@@ -335,7 +346,7 @@ tap.test(p.name, (suite) => {
     });
 
     testNumb.test('fix', (cat) => {
-      cat.test('if valid', (catVal) => {
+      cat.test('if ifValid', (catVal) => {
         const n = _N(2)
           .fix(() => {
             throw new Error('should not execute');
@@ -346,7 +357,7 @@ tap.test(p.name, (suite) => {
         catVal.end();
       });
 
-      cat.test('if invalid', (catVal) => {
+      cat.test('if ifInvalid', (catVal) => {
         const n = _N('two')
           .fix((val) => {
             if (val === 'one') {
@@ -371,7 +382,7 @@ tap.test(p.name, (suite) => {
         gt.test('in limit', (gtGood) => {
           let result;
 
-          _N(20).gt(100, () => {
+          _N(20).ifGT(100, () => {
             result = 'overflow';
           }, (n) => {
             result = n;
@@ -386,7 +397,7 @@ tap.test(p.name, (suite) => {
         gt.test('over limit', (gtGood) => {
           let result;
 
-          _N(200).gt(100, () => {
+          _N(200).ifGT(100, () => {
             result = 'overflow';
           }, (n) => {
             result = n;
@@ -401,7 +412,7 @@ tap.test(p.name, (suite) => {
         gt.test('invalid', (gtGood) => {
           let result;
 
-          _N(null).gt(100, () => {
+          _N(null).ifGT(100, () => {
             result = 'overflow';
           }, (n) => {
             result = n;
@@ -420,7 +431,7 @@ tap.test(p.name, (suite) => {
         gt.test('in limit', (gtGood) => {
           let result;
 
-          _N(20).gt(100, () => {
+          _N(20).ifGT(100, () => {
             result = 'overflow';
           }).else((n) => {
             result = n;
@@ -433,7 +444,7 @@ tap.test(p.name, (suite) => {
         gt.test('over limit', (gtGood) => {
           let result;
 
-          _N(200).gt(100, () => {
+          _N(200).ifGT(100, () => {
             result = 'overflow';
           }).else((n) => {
             result = n;
@@ -446,7 +457,7 @@ tap.test(p.name, (suite) => {
         gt.test('invalid', (gtGood) => {
           let result;
 
-          _N(null).gt(100, () => {
+          _N(null).ifGT(100, () => {
             result = 'overflow';
           }, (n) => {
             result = n;
@@ -465,7 +476,7 @@ tap.test(p.name, (suite) => {
         lt.test('too low', (gtGood) => {
           let result;
 
-          _N(2).lt(10, () => {
+          _N(2).ifLT(10, () => {
             result = 'too low';
           }, (n) => {
             result = n;
@@ -480,7 +491,7 @@ tap.test(p.name, (suite) => {
         lt.test('within limit', (gtGood) => {
           let result;
 
-          _N(200).lt(10, () => {
+          _N(200).ifLT(10, () => {
             result = 'too low';
           }, (n) => {
             result = n;
@@ -495,7 +506,7 @@ tap.test(p.name, (suite) => {
         lt.test('invalid', (gtGood) => {
           let result;
 
-          _N('bad data').lt(10, () => {
+          _N('bad data').ifLT(10, () => {
             result = 'too low';
           }, (n) => {
             result = n;
@@ -514,7 +525,7 @@ tap.test(p.name, (suite) => {
         gt.test('in limit', (gtGood) => {
           let result;
 
-          _N(20).gt(100, () => {
+          _N(20).ifGT(100, () => {
             result = 'overflow';
           }).else((n) => {
             result = n;
@@ -527,7 +538,7 @@ tap.test(p.name, (suite) => {
         gt.test('over limit', (gtGood) => {
           let result;
 
-          _N(200).gt(100, () => {
+          _N(200).ifGT(100, () => {
             result = 'overflow';
           }).else((n) => {
             result = n;
@@ -540,7 +551,7 @@ tap.test(p.name, (suite) => {
         gt.test('invalid', (gtGood) => {
           let result;
 
-          _N(null).gt(100, () => {
+          _N(null).ifGT(100, () => {
             result = 'overflow';
           }, (n) => {
             result = n;
@@ -560,11 +571,11 @@ tap.test(p.name, (suite) => {
           let label = '';
 
           _N(0)
-            .lt(20, () => {
+            .ifLT(20, () => {
               label = 'low';
             })
             .else()
-            .lt(50, () => {
+            .ifLT(50, () => {
               label = 'medium';
             })
             .else(() => {
@@ -579,11 +590,11 @@ tap.test(p.name, (suite) => {
           let label = '';
 
           _N(40)
-            .lt(20, () => {
+            .ifLT(20, () => {
               label = 'low';
             })
             .else()
-            .lt(50, () => {
+            .ifLT(50, () => {
               label = 'medium';
             })
             .else(() => {
@@ -599,13 +610,13 @@ tap.test(p.name, (suite) => {
           let label = '';
 
           _N(60)
-            .invalid(() => label = 'invalid')
+            .ifInvalid(() => label = 'invalid')
             .else()
-            .lt(20, () => {
+            .ifLT(20, () => {
               label = 'low';
             })
             .else()
-            .lt(50, () => {
+            .ifLT(50, () => {
               label = 'medium';
             })
             .else(() => {
@@ -628,6 +639,237 @@ tap.test(p.name, (suite) => {
       });
 
       m.end();
+    });
+
+    testNumb.test('modifiers', (m) => {
+      m.test('ceil', (ceil) => {
+        ceil.same(_N(3).ceil().value, 3, 'ceil of whole is initial value');
+        ceil.same(_N(3.1).ceil().value, 4);
+        ceil.same(_N(2.9).ceil().value, 3);
+
+        ceil.end();
+      });
+
+      m.test('round', (round) => {
+        round.same(_N(3).round().value, 3, 'round of whole is initial value');
+        round.same(_N(3.1).round().value, 3);
+        round.same(_N(2.9).round().value, 3);
+
+        round.end();
+      });
+
+      m.test('round', (floor) => {
+        floor.same(_N(3).floor().value, 3, 'floor of whole is initial value');
+        floor.same(_N(3.1).floor().value, 3);
+        floor.same(_N(2.9).floor().value, 2);
+
+        floor.end();
+      });
+
+      m.test('max', (max) => {
+        max.same(_N(3).max(5).value, 5, 'max of 3 and 5 is 5');
+        max.same(_N(5).max(_N(7)).value, 7, 'max of 5 and _N(7) is 7');
+        max.same(_N(3).max([]).value, 3, 'max of 3 and empty set is 3');
+        max.same(_N(3).max(-5).value, 3, 'max of 3 and -5 is 3');
+        max.same(_N('bad value').max(5).value, NaN, 'max of bad value and num is NAN');
+        max.same(_N(3).max('bad value').value, NaN, 'max of num and bad value  is NAN');
+
+        max.same(_N(3).max([4, 5, 6, 2]).value, 6, 'max of set is 6');
+        max.same(_N(3).max([4, _N(5), 6, 2]).value, 6, 'max of set is 6');
+        max.same(_N(3).max([4, _N(7), 6, 2]).value, 7, 'max of set is 7');
+        max.same(_N('bad value').max([4, 5, 6, 2]).value, NaN, 'max of NAN and set is NAN');
+        max.same(_N(3).max([4, 5, 'bad value', 2]).value, NaN, 'max of bad set is NAN');
+
+        max.test('either', (me) => {
+          me.same(_N(3).max(5, true).value, 5, 'max of 3 and 5 is 5');
+          max.same(_N(3).max([], true).value, 3, 'max of 3 and empty set is 3');
+          me.same(_N(3).max(-5, true).value, 3, 'max of 3 and -5 is 3');
+          me.same(_N('bad value').max(5, true).value, 5, 'max of bad value and num is 5');
+          me.same(_N(3).max('bad value', true).value, 3, 'max of num and bad value  is 3');
+
+          me.same(_N(3).max([4, 5, 6, 2], true).value, 6, 'max of set is 6');
+          me.same(_N('bad value').max([4, 5, 6, 2], true).value, 6, 'max of NAN and set is 6');
+          me.same(_N(3).max([4, 5, 'bad value', 2], true).value, 5, 'max of bad set is 5');
+          me.end();
+        });
+        max.end();
+      });
+
+      m.test('min', (min) => {
+        min.same(_N(3).min(5).value, 3, 'min of 3 and 5 is 3');
+        min.same(_N(3).min([]).value, 3, 'min of 3 and empty set is 3');
+        min.same(_N(3).min(-5).value, -5, 'min of 3 and -5 is -5');
+        min.same(_N('bad value').min(5).value, NaN, 'min of bad value and num is NAN');
+        min.same(_N(3).min('bad value').value, NaN, 'min of num and bad value  is NAN');
+
+        min.same(_N(3).min([4, 5, 6, 2]).value, 2, 'min of set is 2');
+        min.same(_N('bad value').min([4, 5, 6, 2]).value, NaN, 'min of NAN and set is NAN');
+        min.same(_N(3).min([4, 5, 'bad value', 2]).value, NaN, 'min of bad set is NAN');
+
+        min.test('either', (me) => {
+          me.same(_N(3).min(5, true).value, 3, 'min of 3 and 5 is 3');
+          min.same(_N(3).min([], true).value, 3, 'min of 3 and empty set is 3');
+          me.same(_N(3).min(-5, true).value, -5, 'min of 3 and -5 is -5');
+          me.same(_N('bad value').min(5, true).value, 5, 'min of bad value and num is 5');
+          me.same(_N(3).min('bad value', true).value, 3, 'min of num and bad value  is 3');
+
+          me.same(_N(3).min([4, 5, 6, 2], true).value, 2, 'min of set is 2');
+          me.same(_N('bad value').min([4, 5, 6, 2], true).value, 2, 'min of NAN and set is 2');
+          me.same(_N(3).min([4, 5, 'bad value', 2], true).value, 2, 'min of bad set is 2');
+          me.end();
+        });
+
+        min.end();
+      });
+
+      m.test('sum, mean', (sum) => {
+        sum.same(_N().sum([1, 2, 3]).value, 6);
+        sum.same(_N(5).sum([5, 10]).value, 20);
+        sum.same(_N(5).sumS([5, 10]).value, 15);
+        sum.same(_N().sum([1, 2, 'str']).value, NaN);
+        sum.same(_N().sum([1, 2, 'str'], true).value, 3);
+
+        sum.end();
+      });
+
+      m.test('plus', (plus) => {
+        plus.same(_N(3).plus(1).value, 4, 'adds good numbers');
+        plus.same(_N(3).plus('1').value, 4, 'adds good numbers');
+        plus.same(_N(3).plus('one').value, NaN, 'bad add to NaN');
+        plus.same(_N('three').plus(1).value, NaN, 'bad value add to NaN');
+        plus.end();
+      });
+
+      m.test('minus', (minus) => {
+        minus.same(_N(3).minus(1).value, 2, 'subs good numbers');
+        minus.same(_N(3).minus('1').value, 2, 'subs good numbers');
+        minus.same(_N(3).minus('one').value, NaN, 'bad subs to NaN');
+        minus.same(_N('three').minus(1).value, NaN, 'bad value minus to NaN');
+        minus.end();
+      });
+
+      m.test('clamp', (clamp) => {
+        clamp.same(_N(3).clamp(0, 4).value, 3);
+        clamp.same(_N(-3).clamp(0, 4).value, 0);
+        clamp.same(_N(30).clamp(0, 4).value, 4);
+        clamp.same(_N(2).clamp([0, 1]).value, 1);
+        clamp.same(_N(-20).clamp([0, 1]).value, 0);
+        clamp.end();
+      });
+
+      m.test('pow', (pow) => {
+        pow.same(_N(4).pow(2).value, 16);
+        pow.same(_N(3).sq().value, 9);
+        pow.same(_N(-3).sq().value, 9);
+
+        pow.same(_N(16).sqrt().value, 4);
+        pow.same(_N(-16).sqrt().value, NaN);
+        pow.same(_N(-16).sqrt(true).value, -4);
+        pow.end();
+      });
+
+      m.test('trig', (trig) => {
+        extendF(trig);
+        const rad60 = Math.PI / 3;
+        const cos60 = Math.cos(rad60);
+        const sin60 = Math.sin(rad60);
+        const tan60 = Math.tan(rad60);
+
+        trig.sameF(_N(rad60).cos().value, cos60, 'cos from rad');
+        trig.sameF(_N(60).cos(true).value, cos60, 'cos from degree');
+        trig.sameF(_N(rad60).sin().value, sin60, 'sin from rad');
+        trig.sameF(_N(60).sin(true).value, sin60, 'sin from deg');
+        trig.sameF(_N(rad60).tan().value, tan60, 'tan in rad');
+        trig.sameF(_N(60).tan(true).value, tan60, 'tan in deg');
+
+        trig.sameF(_N(cos60).arcCos().value, rad60, 'arcCos in rad');
+        trig.sameF(_N(cos60).arcCos(true).value, 60, 'arcCos in deg');
+
+        trig.sameF(_N(sin60).arcSin().value, rad60, 'arcSin in rad');
+        trig.sameF(_N(sin60).arcSin(true).value, 60, 'arcSin in deg');
+
+        trig.sameF(_N(tan60).arcTan().value, rad60, 'arcTan in rad');
+        trig.sameF(_N(tan60).arcTan(true).value, 60, 'arcTan in deg');
+
+        trig.end();
+      });
+
+      m.test('div/times', (other) => {
+        other.same(_N(12).div(4).value, 3, 'div good numbers');
+        other.same(_N(12).div('4').value, 3, 'div good numbers');
+        other.same(_N(3).div('one').value, NaN, 'bad div to NaN');
+        other.same(_N('three').div(1).value, NaN, 'bad value div to NaN');
+
+        other.same(_N(12).times(4).value, 48, 'times good numbers');
+        other.same(_N(12).times('4').value, 48, 'times good numbers');
+        other.same(_N(3).times('one').value, NaN, 'bad times to NaN');
+        other.same(_N('three').times(1).value, NaN, 'bad value times to NaN');
+
+        other.end();
+      });
+
+      m.test('clampDeg', (cd) => {
+        cd.same(_N(NaN).clampDeg().value, NaN);
+        cd.same(_N(0).clampDeg().value, 0);
+        cd.same(_N(360).clampDeg().value, 0);
+        cd.same(_N(1000).clampDeg().value, 280);
+        cd.same(_N(1).clampDeg().value, 1);
+        cd.same(_N(90).clampDeg().value, 90);
+        cd.same(_N(-90).clampDeg().value, 270);
+        cd.same(_N(180).clampDeg().value, 180);
+        cd.same(_N(-180).clampDeg().value, 180);
+
+        cd.end();
+      });
+
+
+      m.test('clampDeg180', (cd) => {
+        cd.same(_N(NaN).clampDeg180().value, NaN);
+        cd.same(_N(0).clampDeg180().value, 0);
+        cd.same(_N(360).clampDeg180().value, 0);
+        cd.same(_N(1000).clampDeg180().value, -80);
+        cd.same(_N(1).clampDeg180().value, 1);
+        cd.same(_N(90).clampDeg180().value, 90);
+        cd.same(_N(-90).clampDeg180().value, -90);
+        cd.same(_N(-95).clampDeg180().value, -95);
+        cd.same(_N(180).clampDeg180().value, 180);
+        cd.same(_N(-180).clampDeg180().value, -180);
+        cd.same(_N(-185).clampDeg180().value, 175);
+
+        cd.end();
+      });
+
+      m.test('chaining', (chain) => {
+        chain.same(
+          _N(
+            _N().firstGood('a', 2, 'b'),
+          ).max(20)
+            .times(4)
+            .plus(1)
+            .sqrt()
+            .value, 9, 'chaining operators',
+        );
+
+
+        chain.same(
+          _N('100')
+            .sub(200)
+            .sqrt()
+            .value, NaN,
+          'chaining with sqrt negative',
+        );
+        chain.end();
+      });
+
+      m.end();
+    });
+
+    testNumb.test('first good', (first) => {
+      first.same(_N().firstGood().value, NaN, 'no param is NaN');
+      first.same(_N().firstGood('string').value, NaN, 'no param is NaN');
+      first.same(_N().firstGood(['string']).value, NaN, 'no param is NaN');
+      first.same(_N().firstGood('string', [{}, 2, 4], 3).value, 2, 'list is first good');
+      first.end();
     });
 
     testNumb.end();

@@ -1,5 +1,10 @@
 const ABSENT = Symbol('absent');
 
+const CURRIES = 'ifValid,ifInvalid,ifPositive,ifNegative,ifWhole,ifZero,ifLT,ifGT,ifLTE,ifGTE,ifEQ'.split(',');
+const UNARY_TESTS = 'isValid,isInvalid,isPositive,isNegative,isWhole,isZero,isInfinite,isInfiniteNeg,isEven,isOdd'.split(',');
+const COMPARITAVE_TESTS = 'isGT,isLT,isGTE,isLTE,isEq,isMultOf,isNotMultOf'.split(',');
+
+
 const is = {
   n(value) {
     if (Number.isNaN(value)) {
@@ -16,11 +21,31 @@ const is = {
   nil(value) {
     return value === null;
   },
+  a(value) {
+    return Array.isArray(value);
+  },
 };
 
-const CURRIES = 'valid,invalid,positive,negative,whole,zero,lt,lte,gt,gte'.split(',');
-const UNARY_TESTS = 'isValid,isInvalid,isPositive,isNegative,isWhole,isZero,isInfinite,isInfiniteNeg,isEven,isOdd'.split(',');
-const COMPARITAVE_TESTS = 'isGT,isLT,isGTE,isLTE,isEq,isMultOf,isNotMultOf'.split(',');
+const flatten = (value) => {
+  if (value instanceof Numb) return [value.value];
+  if (!Array.isArray(value)) {
+    return [value];
+  }
+  let out = [];
+  for (let i = 0; i < value.length; ++i) {
+    const v = value[i];
+    if (Array.isArray(v)) {
+      out = out.concat(flatten(v));
+    } else {
+      out.push(v);
+    }
+  }
+  return out.map(v);
+};
+
+const v = (value) => (value instanceof Numb ? value.value : value);
+const _N = (value, alt) => (value instanceof Numb ? value : new Numb(value, alt));
+
 const nullProxy = typeof (Proxy) !== 'undefined' ? new Proxy({}, {
   get(obj, prop) {
     if (CURRIES.includes(prop) || prop === 'else') {
@@ -84,6 +109,7 @@ class Numb {
             this.value = alt;
           }
         } else {
+          this.value = NaN;
         }
       }
     } else {
@@ -129,7 +155,7 @@ class Numb {
    * @returns {Numb}
    */
   fix(fn) {
-    if (!this.isValid) {
+    if (this.isInvalid) {
       if (is.f(fn)) {
         this._value = this.doV(fn);
       } else {
@@ -187,74 +213,399 @@ class Numb {
     return !is.n(this.value);
   }
 
+  // ---------------------- UNARY TRANSFORMERS
+
+  abs() {
+    if (this.isValid && this.isNegative) {
+      return this.negate();
+    }
+    return this;
+  }
+
+  absN() {
+    if (this.isValid && this.isPositive) {
+      return this.negate();
+    }
+    return this;
+  }
+
+  ceil() {
+    if (this.isInvalid) {
+      return this;
+    }
+    const v = Math.ceil(this.value);
+    return new Numb(v);
+  }
+
+  floor() {
+    if (this.isInvalid) {
+      return this;
+    }
+    const v = Math.floor(this.value);
+    return new Numb(v);
+  }
+
+  round() {
+    if (this.isInvalid) {
+      return this;
+    }
+    return new Numb(Math.round(this.value));
+  }
+
+  mod(n) {
+    if (n instanceof Numb) n = n.value;
+    if (!is.n(n) || this.isInvalid) {
+      return Numb.doc(this, 'mod', n);
+    }
+    return new Numb(this.value % n);
+  }
+
+  sq() {
+    if (this.isInvalid) {
+      return new Numb(Number.NaN);
+    }
+    return new Numb(this.value ** 2);
+  }
+
+  sqrt(abs) {
+    if (this.isInvalid) return this;
+    if (this.value < 0) {
+      if (abs) {
+        return this.negate().sqrt().negate();
+      }
+      return Numb.doc(this, 'sqrt');
+    }
+    return _N(Math.sqrt(this.value));
+  }
+
+  negate() {
+    return this.times(-1);
+  }
+
+  // --------------- BINARY TRANSFORMERS: basic math
+
+  pow(n) {
+    if (this.isInvalid) return this;
+    const nValue = _N(n);
+    if (nValue.isInvalid) {
+      return _N(NaN);
+    }
+    return _N(this.value ** nValue.value);
+  }
+
+  times(n, ignoreBad) {
+    const nValue = _N(n);
+    if (ignoreBad && nValue.isInvalid) return this;
+    if (this.isInvalid || !nValue.isValid) {
+      return Numb.doc(this, 'times', n);
+    }
+    return new Numb(this.value * nValue.value);
+  }
+
+  div(n) {
+    const nValue = _N(n);
+    if (this.isInvalid || nValue.isInvalid) {
+      return Numb.doc(this, 'times', n);
+    }
+    return new Numb(this.value / nValue.value);
+  }
+
+  sum(n, ignoreBad = false) {
+    let candidates = flatten(n);
+    if (this.isValid) candidates.push(this.value);
+    if (ignoreBad) candidates = candidates.filter(is.n);
+    else if (!candidates.every(is.n)) {
+      return _N(NaN);
+    }
+
+    return _N(candidates.reduce((n, value) => n + v(value), 0));
+  }
+
+  add(...args) {
+    return this.plus(...args);
+  }
+
+  sub(...args) {
+    return this.minus(...args);
+  }
+
+  // --------------- TRIGONOMETERS
+
+  sin(isDeg = false) {
+    if (this.isInvalid) return this;
+    if (isDeg) return this.deg2rad().sin();
+    return _N(Math.sin(this.value));
+  }
+
+  cos(isDeg = false) {
+    if (this.isInvalid) return this;
+    if (isDeg) return this.deg2rad().cos();
+    return _N(Math.cos(this.value));
+  }
+
+  tan(isDeg = false) {
+    if (this.isInvalid) return this;
+    if (isDeg) return this.deg2rad().tan();
+    return _N(Math.tan(this.value));
+  }
+
+  arcSin(isDeg = false) {
+    if (this.isInvalid) return this;
+    if (isDeg) return this.arcSin().rad2deg();
+    return _N(Math.asin(this.value));
+  }
+
+  arcCos(isDeg = false) {
+    if (this.isInvalid) return this;
+    if (isDeg) return this.arcCos().rad2deg();
+    return _N(Math.acos(this.value));
+  }
+
+  arcTan(isDeg = false) {
+    if (this.isInvalid) return this;
+    if (isDeg) return this.arcTan().rad2deg();
+    return _N(Math.atan(this.value));
+  }
+
+  arcTan2(v2, isDeg = false) {
+    const v2Value = _N(v2);
+    if (v2Value.isInvalid) return Numb.doc(this, 'atan2', v2, isDeg);
+    if (this.isInvalid) return this;
+    if (isDeg) return _N(Math.atan2(this.value, v2.value)).rad2deg();
+    return _N(Math.atan2(this.value, v2.value));
+  }
+
+  log() {
+    if (this.isInvalid) return this;
+    return _N(Math.log(this.value));
+  }
+
+  log10() {
+    if (this.isInvalid) return this;
+    return _N(Math.log10(this.value));
+  }
+
+  clampDeg() {
+    if (this.isInvalid) {
+      return this;
+    }
+    if (!this.isNegative) {
+      return this.mod(360);
+    }
+    return _N(360).minus(this.abs().clampDeg());
+  }
+
+  clampDeg180() {
+    if (this.isInvalid) {
+      return this;
+    }
+    if (this.isEq(-180)) {
+      return this;
+    }
+    const out = this.clampDeg();
+    if (out.isGT(180)) {
+      return out.sub(360);
+    }
+    return out;
+  }
+
+  rad2deg() {
+    if (this.isInvalid) {
+      return this;
+    }
+    return this.times(180 / (Math.PI));
+  }
+
+  deg2rad() {
+    if (this.isInvalid) {
+      return this;
+    }
+    return this.times((Math.PI) / 180);
+  }
+
+  pi() {
+    return _N(Math.PI);
+  }
+
+  // --------------- BINARY TRANSFORMERS: summary
+
+  sumS(...args) {
+    return _N().sum(...args);
+  }
+
+  mean(n, ignoreBad = false) {
+    let candidates = flatten(n);
+    if (this.isValid) candidates.push(this.value);
+
+    if (ignoreBad) {
+      candidates = candidates.filter(is.n);
+    } else if (!candidates.every(is.n)) {
+      return Numb.doc(this, 'mean', candidates);
+    }
+    if (candidates.length < 1) return Numb.doc(this, 'mean', candidates);
+
+    return this.sum(candidates).div(candidates.length);
+  }
+
+  meanS(...args) {
+    return _N().mean(...args);
+  }
+
+  minus(n, ignoreBad = false) {
+    const nValue = _N(n);
+    if (ignoreBad) {
+      if (nValue.isInvalid) return this;
+      if (this.isInvalid) return nValue.negate();
+    } else if ((nValue.isInvalid || this.isInvalid)) {
+      return _N(NaN);
+    }
+
+    return new Numb(this.value - nValue.value);
+  }
+
+  plus(n, ignoreBad = false) {
+    const nValue = _N(n);
+    if (ignoreBad) {
+      if (nValue.isInvalid) return this;
+      if (this.isInvalid) return nValue;
+    } else if ((nValue.isInvalid || this.isInvalid)) {
+      return _N(NaN);
+    }
+
+    return _N(this.value + nValue.value);
+  }
+
+  // ---------------- TRANSFORMERS: summary
+
+  max(n, ignoreBad = false) {
+    const candidates = flatten(n);
+    if (n.length < 1) {
+      return this;
+    }
+
+    if (ignoreBad) {
+      const goodValues = [this.value, ...candidates].map(v).filter(is.n);
+      if (goodValues.length < 1) {
+        return Numb.doc(this, 'max', candidates);
+      }
+      const out = new Numb(goodValues.shift());
+      return out.max(goodValues);
+    }
+
+    if (this.isInvalid || !candidates.every(is.n)) {
+      return Numb.doc(this, 'max', candidates);
+    }
+
+    return new Numb(Math.max(...candidates, this.value));
+  }
+
+  min(n, ignoreBad = false) {
+    const candidates = flatten(n);
+    if (n.length < 1) {
+      return this;
+    }
+
+    if (ignoreBad) {
+      const goodValues = [this.value, ...candidates].map(v).filter(is.n);
+      if (goodValues.length < 1) {
+        return Numb.doc(this, 'min', candidates, true);
+      }
+      const out = new Numb(goodValues.shift());
+      return out.min(goodValues);
+    }
+
+    if (this.isInvalid || !candidates.every(is.n)) {
+      return Numb.doc(this, 'min', candidates);
+    }
+
+    return new Numb(Math.min(...candidates, this.value));
+  }
+
+  clamp(a, b, ignoreBad = false) {
+    if (Array.isArray(a)) {
+      return this.clamp(...a);
+    }
+    if (this.isInvalid) return this;
+    const aValue = _N(a);
+    const bValue = _N(b);
+    if ((!ignoreBad) && (aValue.isInvalid || bValue.isInvalid)) {
+      return Numb.doc(this, 'clamp', a, b);
+    }
+    const min = aValue.min(b);
+    const max = aValue.max(b);
+    return this.max(min).min(max);
+  }
+
+  // --------------- LOGIC TESTS
+
   get isInfinite() {
-    return !this.isValid ? null : this.value === Number.POSITIVE_INFINITY;
+    return this.isInvalid ? null : this.value === Number.POSITIVE_INFINITY;
   }
 
   get isInfiniteNeg() {
-    return !this.isValid ? null : this.value === Number.NEGATIVE_INFINITY;
+    return this.isInvalid ? null : this.value === Number.NEGATIVE_INFINITY;
   }
 
   get isWhole() {
-    return !this.isValid ? null : this.value === Math.round(this.value);
+    return this.isInvalid ? null : this.value === Math.round(this.value) && !this.isNegative;
   }
 
   get isFloat() {
-    return !this.isValid ? null : this.value !== Math.round(this.value);
+    return this.isInvalid ? null : this.value !== Math.round(this.value);
   }
 
   get isPositive() {
-    return !this.isValid ? null : this.value > 0;
+    return this.isInvalid ? null : this.value > 0;
   }
 
   get isNegative() {
-    return !this.isValid ? null : this.value < 0;
+    return this.isInvalid ? null : this.value < 0;
   }
 
   get isZero() {
-    return !this.isValid ? null : this.value === 0;
+    return this.isInvalid ? null : this.value === 0;
   }
 
   isGT(value) {
     if (!is.n(value)) {
       return null;
     }
-    return !this.isValid ? null : this.value > value;
+    return this.isInvalid ? null : this.value > value;
   }
 
   isLT(value) {
     if (!is.n(value)) {
       return null;
     }
-    return !this.isValid ? null : this.value < value;
+    return this.isInvalid ? null : this.value < value;
   }
 
   isGTE(value) {
     if (!is.n(value)) {
       return null;
     }
-    return !this.isValid ? null : this.value >= value;
+    return this.isInvalid ? null : this.value >= value;
   }
 
   isLTE(value) {
     if (!is.n(value)) {
       return null;
     }
-    return !this.isValid ? null : this.value <= value;
+    return this.isInvalid ? null : this.value <= value;
   }
 
   isEq(value) {
     if (!is.n(value)) {
       return null;
     }
-    return !this.isValid ? null : this.value === value;
+    return this.isInvalid ? null : this.value === value;
   }
 
   isMultOf(divisor) {
     if (!is.n(divisor)) {
       return null;
     }
-    return !this.isValid ? null : !(this.value % divisor);
+    return this.isInvalid ? null : !(this.value % divisor);
   }
 
   _f(fn, name = '') {
@@ -263,8 +614,10 @@ class Numb {
     }
   }
 
+  // ------------------ FORK FUNCTIONS --------------------
+
   if(test, ifTrue, ifFalse, ifInvalid) {
-    // value is invalid (and presumed untestable
+    // value is ifInvalid (and presumed untestable
     if (test === 'isInvalid') {
       if (this.isInvalid) {
         return this.doV(ifTrue);
@@ -283,7 +636,7 @@ class Numb {
       }
       return;
     }
-    if (!this.isValid) {
+    if (this.isInvalid) {
       if (is.f(ifInvalid)) {
         return this.doV(ifInvalid);
       }
@@ -296,6 +649,12 @@ class Numb {
       if (is.f(ifFalse)) {
         return this.doV(ifFalse);
       }
+    } else if (is.a(test)) {
+      const [name, value] = test;
+      if (COMPARITAVE_TESTS.includes(name)) {
+        return this.if(() => this[name](value), ifTrue, ifFalse, ifInvalid);
+      }
+      throw new Error(`cannot find test ${name}`);
     } else if (is.s(test)) {
       if (UNARY_TESTS.includes(test)) {
         if (this[test]) {
@@ -308,98 +667,114 @@ class Numb {
       }
       throw new Error(`bad test ${test}`);
     } else if (test === true) {
-      return this.do(ifTrue, test);
+      this.do(ifTrue, test);
     } else if (test === false) {
-      return this.do(ifFalse, test);
+      this.do(ifFalse, test);
     } else {
-      return this.if(test === this.value, ifTrue, ifFalse, ifInvalid);
+      this.if(test === this.value, ifTrue, ifFalse, ifInvalid);
     }
   }
 
-  valid(fn, orFn) {
+  ifValid(fn, orFn) {
     this.if('isValid', fn, orFn);
     return proxy(this, 'isValid');
   }
 
-  invalid(fn, orFn) {
+  ifInvalid(fn, orFn) {
     this.if('isInvalid', fn, orFn);
     return proxy(this, 'isInvalid');
   }
 
-  positive(fn, orFn, invFn) {
+  ifPositive(fn, orFn, invFn) {
     this.if('isPositive', fn, orFn, invFn);
     return proxy(this, 'isPositive');
   }
 
-  negative(fn, orFn, invFn) {
+  ifNegative(fn, orFn, invFn) {
     this.if('isNegative', fn, orFn, invFn);
     return proxy(this, 'isNegative');
   }
 
-  zero(fn, orFn, invFn) {
+  ifZeroero(fn, orFn, invFn) {
     this.if('isZero', fn, orFn, invFn);
     return proxy(this, 'isZero');
   }
 
-  whole(fn, orFn, invFn) {
+  ifWhole(fn, orFn, invFn) {
     this.if('isWhole', fn, orFn, invFn);
     return proxy(this, 'isWhole');
   }
 
   float(fn, orFn, invFn) {
-    this.if('isValid', fn, orFn, invFn);
+    this.if('isFloat', fn, orFn, invFn);
     return proxy(this, 'isValid');
   }
 
-  infinite(fn, orFn, invFn) {
+  ifInfinite(fn, orFn, invFn) {
     this.if('isInfinite', fn, orFn, invFn);
     return proxy(this, 'isInfinite');
   }
 
-  infiniteNeg(fn, orFn, invFn) {
+  ifInfiniteNeg(fn, orFn, invFn) {
     this.if('isInfiniteNeg', fn, orFn, invFn);
     return proxy(this, 'isInfiniteNeg');
   }
 
-  even(fn, orFn, invFn) {
+  ifEven(fn, orFn, invFn) {
     this.if('isEven', fn, orFn, invFn);
     return proxy(this, 'isEven');
   }
 
-  odd(fn, orFn, invFn) {
+  ifOodd(fn, orFn, invFn) {
     this.if('isOdd', fn, orFn, invFn);
     return proxy(this, 'isOdd');
   }
 
-  gt(limit, fn, orFn, invFn) {
-    this.if((value) => value > limit, fn, orFn, invFn);
+  ifGT(limit, fn, orFn, invFn) {
+    this.if(['isGT', limit], fn, orFn, invFn);
     return proxy(this, 'isGT', limit);
   }
 
-  multOf(divisor, fn, orFn, invFn) {
+  ifMultOf(divisor, fn, orFn, invFn) {
     this.if((value) => !(value % divisor), fn, orFn, invFn);
     return proxy(this, 'isMultOf', divisor);
   }
 
-  gte(limit, fn, orFn, invFn) {
+  ifGTE(limit, fn, orFn, invFn) {
     this.if((value) => value >= limit, fn, orFn, invFn);
     return proxy(this, 'isGTE', limit);
   }
 
-  lt(limit, fn, orFn, invFn) {
+  ifLT(limit, fn, orFn, invFn) {
     this.if((value) => value < limit, fn, orFn, invFn);
     return proxy(this, 'isLT', limit);
   }
 
-  lte(limit, fn, orFn, invFn) {
+  ifLTE(limit, fn, orFn, invFn) {
     this.if((value) => value <= limit, fn, orFn, invFn);
     return proxy(this, 'isLTE', limit);
   }
 
-  eq(limit, fn, orFn, invFn) {
+  ifEQ(limit, fn, orFn, invFn) {
     this.if((value) => value === limit, fn, orFn, invFn);
     return proxy(this, 'isEq', limit);
   }
+
+  firstGood(...args) {
+    return flatten(args).reduce((n = ABSENT, value) => {
+      if (n.isValid) {
+        return n;
+      }
+      return new Numb(value);
+    }, _N(NaN));
+  }
 }
 
-export default (...args) => new Numb(...args);
+Numb.doc = (from, ...args) => {
+  const n = new Numb(NaN);
+  n.error = args;
+  return n;
+};
+
+
+export default _N;
