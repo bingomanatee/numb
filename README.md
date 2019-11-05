@@ -189,19 +189,22 @@ calculations. They all return new _N instances; so require `.value` suffixes to
 get value. The good news is they can be chained.
 
 Unary transformers
-
-## sq()
-## sqrt(abs)
-## log()
-## log10()
+### sq()
+### sqrt(abs)
+### log()
+### log10()
 if (abs === true) then sqrt of -4 is -2;
-## abs()
-## absN() 
-## pi() 
+### abs()
+### absN() 
+### pi() 
 always negative
-## ceil()
-## floor()
-## negate() *= -1
+### ceil()
+### floor()
+### negate() *= -1
+### rad
+degrees to radians
+### deg
+radians to degrees
 
 Binary transformers:
 
@@ -231,9 +234,10 @@ regardless of order
 ### max(...values)
 ### sum(...value)
 min max and sum include the n's current value
-### minS
-### maxS
-### 
+### minS(...values)
+### maxS(...values)
+### sumS(...values)
+minS, maxS, sumS ignore the _N's current value;
 
 Transformers should never throw -- worst case, they result in NaN.
 

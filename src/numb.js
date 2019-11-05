@@ -2,7 +2,7 @@ const ABSENT = Symbol('absent');
 
 const CURRIES = 'ifValid,ifInvalid,ifPositive,ifNegative,ifWhole,ifZero,ifLT,ifGT,ifLTE,ifGTE,ifEQ'.split(',');
 const UNARY_TESTS = 'isValid,isInvalid,isPositive,isNegative,isWhole,isZero,isInfinite,isInfiniteNeg,isEven,isOdd'.split(',');
-const COMPARITAVE_TESTS = 'isGT,isLT,isGTE,isLTE,isEq,isMultOf,isNotMultOf'.split(',');
+const COMPARITAVE_TESTS = 'isGT,isLT,isGTE,isLTE,isEQ,isMultOf,isNotMultOf'.split(',');
 
 
 const is = {
@@ -27,7 +27,9 @@ const is = {
 };
 
 const flatten = (value) => {
-  if (value instanceof Numb) return [value.value];
+  if (value instanceof Numb) {
+    return [value.value];
+  }
   if (!Array.isArray(value)) {
     return [value];
   }
@@ -156,11 +158,7 @@ class Numb {
    */
   fix(fn) {
     if (this.isInvalid) {
-      if (is.f(fn)) {
-        this._value = this.doV(fn);
-      } else {
-        this._value = fn;
-      }
+      this._value = is.f(fn) ? this.doV(fn) : fn;
     }
     return this;
   }
@@ -184,7 +182,9 @@ class Numb {
     if (this.isValid) {
       return nullProxy;
     }
-    this.do(() => fn(this.source));
+    if (is.f(fn)) {
+      this.do(() => fn(this.source));
+    }
     return this;
   }
 
@@ -210,7 +210,7 @@ class Numb {
   }
 
   get isInvalid() {
-    return !is.n(this.value);
+    return !this.isValid;
   }
 
   // ---------------------- UNARY TRANSFORMERS
@@ -233,16 +233,14 @@ class Numb {
     if (this.isInvalid) {
       return this;
     }
-    const v = Math.ceil(this.value);
-    return new Numb(v);
+    return new Numb(Math.ceil(this.value));
   }
 
   floor() {
     if (this.isInvalid) {
       return this;
     }
-    const v = Math.floor(this.value);
-    return new Numb(v);
+    return new Numb(Math.floor(this.value));
   }
 
   round() {
@@ -253,11 +251,11 @@ class Numb {
   }
 
   mod(n) {
-    if (n instanceof Numb) n = n.value;
-    if (!is.n(n) || this.isInvalid) {
+    const modValue = _N(n);
+    if (modValue.isInvalid || this.isInvalid) {
       return Numb.doc(this, 'mod', n);
     }
-    return new Numb(this.value % n);
+    return new Numb(this.value % modValue.value);
   }
 
   sq() {
@@ -268,7 +266,9 @@ class Numb {
   }
 
   sqrt(abs) {
-    if (this.isInvalid) return this;
+    if (this.isInvalid) {
+      return this;
+    }
     if (this.value < 0) {
       if (abs) {
         return this.negate().sqrt().negate();
@@ -285,7 +285,9 @@ class Numb {
   // --------------- BINARY TRANSFORMERS: basic math
 
   pow(n) {
-    if (this.isInvalid) return this;
+    if (this.isInvalid) {
+      return this;
+    }
     const nValue = _N(n);
     if (nValue.isInvalid) {
       return _N(NaN);
@@ -295,7 +297,9 @@ class Numb {
 
   times(n, ignoreBad) {
     const nValue = _N(n);
-    if (ignoreBad && nValue.isInvalid) return this;
+    if (ignoreBad && nValue.isInvalid) {
+      return this;
+    }
     if (this.isInvalid || !nValue.isValid) {
       return Numb.doc(this, 'times', n);
     }
@@ -312,9 +316,12 @@ class Numb {
 
   sum(n, ignoreBad = false) {
     let candidates = flatten(n);
-    if (this.isValid) candidates.push(this.value);
-    if (ignoreBad) candidates = candidates.filter(is.n);
-    else if (!candidates.every(is.n)) {
+    if (this.isValid) {
+      candidates.push(this.value);
+    }
+    if (ignoreBad) {
+      candidates = candidates.filter(is.n);
+    } else if (!candidates.every(is.n)) {
       return _N(NaN);
     }
 
@@ -332,91 +339,98 @@ class Numb {
   // --------------- TRIGONOMETERS
 
   sin(isDeg = false) {
-    if (this.isInvalid) return this;
-    if (isDeg) return this.deg2rad().sin();
+    if (this.isInvalid) {
+      return this;
+    }
+    if (isDeg) {
+      return this.rad().sin();
+    }
     return _N(Math.sin(this.value));
   }
 
   cos(isDeg = false) {
-    if (this.isInvalid) return this;
-    if (isDeg) return this.deg2rad().cos();
+    if (this.isInvalid) {
+      return this;
+    }
+    if (isDeg) {
+      return this.rad().cos();
+    }
     return _N(Math.cos(this.value));
   }
 
   tan(isDeg = false) {
-    if (this.isInvalid) return this;
-    if (isDeg) return this.deg2rad().tan();
+    if (this.isInvalid) {
+      return this;
+    }
+    if (isDeg) {
+      return this.rad().tan();
+    }
     return _N(Math.tan(this.value));
   }
 
   arcSin(isDeg = false) {
-    if (this.isInvalid) return this;
-    if (isDeg) return this.arcSin().rad2deg();
+    if (this.isInvalid) {
+      return this;
+    }
+    if (isDeg) {
+      return this.arcSin().deg();
+    }
     return _N(Math.asin(this.value));
   }
 
   arcCos(isDeg = false) {
-    if (this.isInvalid) return this;
-    if (isDeg) return this.arcCos().rad2deg();
-    return _N(Math.acos(this.value));
+    if (this.isInvalid) {
+      return this;
+    }
+    return isDeg ? this.arcCos().deg() : _N(Math.acos(this.value));
   }
 
   arcTan(isDeg = false) {
-    if (this.isInvalid) return this;
-    if (isDeg) return this.arcTan().rad2deg();
-    return _N(Math.atan(this.value));
+    if (this.isInvalid) {
+      return this;
+    }
+    return isDeg ? this.arcTan().deg() : _N(Math.atan(this.value));
   }
 
   arcTan2(v2, isDeg = false) {
     const v2Value = _N(v2);
-    if (v2Value.isInvalid) return Numb.doc(this, 'atan2', v2, isDeg);
-    if (this.isInvalid) return this;
-    if (isDeg) return _N(Math.atan2(this.value, v2.value)).rad2deg();
-    return _N(Math.atan2(this.value, v2.value));
+    if (v2Value.isInvalid) {
+      return Numb.doc(this, 'arcTan2', v2, isDeg);
+    }
+    return this.isInvalid ? this : isDeg ? _N(Math.atan2(this.value, v2.value)).deg() : _N(Math.atan2(this.value, v2.value));
   }
 
   log() {
-    if (this.isInvalid) return this;
-    return _N(Math.log(this.value));
+    return this.isInvalid ? this : _N(Math.log(this.value));
   }
 
   log10() {
-    if (this.isInvalid) return this;
-    return _N(Math.log10(this.value));
+    return this.isInvalid ? this : _N(Math.log10(this.value));
   }
 
   clampDeg() {
     if (this.isInvalid) {
       return this;
     }
-    if (!this.isNegative) {
-      return this.mod(360);
-    }
-    return _N(360).minus(this.abs().clampDeg());
+    return !this.isNegative ? this.mod(360) : _N(360).minus(this.abs().clampDeg());
   }
 
   clampDeg180() {
     if (this.isInvalid) {
       return this;
     }
-    if (this.isEq(-180)) {
+    if (this.isEQ(-180)) {
       return this;
     }
     const out = this.clampDeg();
-    if (out.isGT(180)) {
-      return out.sub(360);
-    }
-    return out;
+    return out.isGT(180) ? out.sub(360) : out;
   }
 
-  rad2deg() {
-    if (this.isInvalid) {
-      return this;
-    }
-    return this.times(180 / (Math.PI));
+  deg() {
+    return this.isInvalid ? this : this.times(180 / (Math.PI));
   }
 
-  deg2rad() {
+  rad() {
     if (this.isInvalid) {
       return this;
     }
@@ -435,14 +449,18 @@ class Numb {
 
   mean(n, ignoreBad = false) {
     let candidates = flatten(n);
-    if (this.isValid) candidates.push(this.value);
+    if (this.isValid) {
+      candidates.push(this.value);
+    }
 
     if (ignoreBad) {
       candidates = candidates.filter(is.n);
     } else if (!candidates.every(is.n)) {
       return Numb.doc(this, 'mean', candidates);
     }
-    if (candidates.length < 1) return Numb.doc(this, 'mean', candidates);
+    if (candidates.length < 1) {
+      return Numb.doc(this, 'mean', candidates);
+    }
 
     return this.sum(candidates).div(candidates.length);
   }
@@ -454,8 +472,12 @@ class Numb {
   minus(n, ignoreBad = false) {
     const nValue = _N(n);
     if (ignoreBad) {
-      if (nValue.isInvalid) return this;
-      if (this.isInvalid) return nValue.negate();
+      if (nValue.isInvalid) {
+        return this;
+      }
+      if (this.isInvalid) {
+        return nValue.negate();
+      }
     } else if ((nValue.isInvalid || this.isInvalid)) {
       return _N(NaN);
     }
@@ -466,8 +488,12 @@ class Numb {
   plus(n, ignoreBad = false) {
     const nValue = _N(n);
     if (ignoreBad) {
-      if (nValue.isInvalid) return this;
-      if (this.isInvalid) return nValue;
+      if (nValue.isInvalid) {
+        return this;
+      }
+      if (this.isInvalid) {
+        return nValue;
+      }
     } else if ((nValue.isInvalid || this.isInvalid)) {
       return _N(NaN);
     }
@@ -525,7 +551,9 @@ class Numb {
     if (Array.isArray(a)) {
       return this.clamp(...a);
     }
-    if (this.isInvalid) return this;
+    if (this.isInvalid) {
+      return this;
+    }
     const aValue = _N(a);
     const bValue = _N(b);
     if ((!ignoreBad) && (aValue.isInvalid || bValue.isInvalid)) {
@@ -594,7 +622,7 @@ class Numb {
     return this.isInvalid ? null : this.value <= value;
   }
 
-  isEq(value) {
+  isEQ(value) {
     if (!is.n(value)) {
       return null;
     }
@@ -610,7 +638,7 @@ class Numb {
 
   _f(fn, name = '') {
     if (!is.f(fn)) {
-      throw new Error(`numb.${name}: ` + `${this.value}` + ' called with non function ' + `${fn}`);
+      throw new Error(`numb.${name}: ${this.value} called with non function ${fn}`);
     }
   }
 
@@ -757,7 +785,7 @@ class Numb {
 
   ifEQ(limit, fn, orFn, invFn) {
     this.if((value) => value === limit, fn, orFn, invFn);
-    return proxy(this, 'isEq', limit);
+    return proxy(this, 'isEQ', limit);
   }
 
   firstGood(...args) {
