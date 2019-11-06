@@ -11,7 +11,7 @@ module.exports = {
   output: {
     file: 'lib/index.js',
     format: 'umd',
-    name: 'SCHEMA',
+    name: 'N',
     compact: true,
   },
 };

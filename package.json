@@ -1,6 +1,6 @@
 {
   "name": "@wonderlandlabs/n",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "A number cleansing / analysis library",
   "main": "lib/index.js",
   "module": "es/index.js",
@@ -33,5 +33,5 @@
   },
   "author": "David Edelhart",
   "license": "MIT",
-  "repository": "https://github.com/bingomanatee/schema"
+  "repository": "https://github.com/bingomanatee/numb"
 }
