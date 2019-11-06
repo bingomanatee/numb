@@ -390,9 +390,9 @@ let called = '';
 
  _N(-2)
     .ifInvalid((n) => {
-      called = `${n} is ifInvalid`;
+      called = `${n} is invalid`;
     })
-    .else((n) => called = `${n} is ifValid`)
+    .else((n) => called = `${n} is valid`)
     .ifPositive((n) => {
       called = _.trim(`${called} ${n} is positive`);
     })
@@ -400,13 +400,13 @@ let called = '';
       called = _.trim(`${called} ${n} is non-positive`);
     });
 console.log('called: ', called);
-// -2 is ifValid -2 is non-positive;
+// -2 is valid -2 is non-positive;
 
  _N('bad value')
     .ifInvalid((n) => {
-      called = `${n} is ifInvalid`;
+      called = `${n} is invalid`;
     })
-    .else((n) => called = `${n} is ifValid`)
+    .else((n) => called = `${n} is valid`)
     .ifPositive((n) => {
       called = _.trim(`${called} ${n} is positive`);
     })
@@ -414,7 +414,7 @@ console.log('called: ', called);
       called = _.trim(`${called} ${n} is non-positive`);
     });
 console.log('called: ', called);
-// 'bad value is ifInvalid'
+// 'bad value is invalid'
 
 ```
 note how neither the function in the else clause NOR
