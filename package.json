@@ -1,6 +1,6 @@
 {
-  "name": "@wonderlandlabs/numb",
-  "version": "1.0.0",
+  "name": "@wonderlandlabs/n",
+  "version": "1.0.1",
   "description": "A number cleansing / analysis library",
   "main": "lib/index.js",
   "module": "es/index.js",

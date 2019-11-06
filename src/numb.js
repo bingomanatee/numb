@@ -158,6 +158,9 @@ class Numb {
    */
   fix(fn) {
     if (this.isInvalid) {
+      if (this._lock) {
+        return _N(is.f(fn) ? this.doV(fn) : fn);
+      }
       this._value = is.f(fn) ? this.doV(fn) : fn;
     }
     return this;

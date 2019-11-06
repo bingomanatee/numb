@@ -67,6 +67,35 @@ tap.test(p.name, (suite) => {
         vn.end();
       });
 
+      v.test('readme', (r) => {
+        extendF(r);
+        const a = _N('20');
+        const b = _N(30);
+        const c = _N(5);
+        /*
+              const t1 = b.sq().minus(a.times(4).times(c));
+              const ac4 = b.negate().minus(t1);
+              const x1 = b.negate().minus(t1).div(a.times(2));
+
+              r.same(t1.val, 'first term');
+              /*       console.log('b squared', b.sq().value,
+                '-4ac', a.times(4).times(c).value);
+              console.log('b squared - 4ac', t1.value);
+              console.log('sqrt(b squared - 4ac)', t1.sqrt().value);
+              console.log('-b - sqrt(b squared - 4ac)', b.negate().minus(t1.sqrt().value).value);
+              console.log('2a', a.times(2).value);
+              console.log('-b - sqrt(b squared - 4ac)/2a', b.negate().minus(t1.sqrt()).div(a.times(2)).value);
+              console.log(); */
+
+        r.sameF(b.negate()
+          .minus(b.sq().minus(a.times(4).times(c)).sqrt())
+          .div(a.times(2)).value, -1.30901699, 'quadratic formula');
+        r.sameF(b.negate()
+          .plus(b.sq().minus(a.times(4).times(c)).sqrt())
+          .div(a.times(2)).value, -0.191, 'quadratic formula');
+        r.end();
+      });
+
       v.test('string', (vn) => {
         const numb1 = _N('1');
 

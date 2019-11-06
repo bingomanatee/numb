@@ -6,8 +6,49 @@ verbose branchy logic for numbers, and hacky code to fix wierd values?
 Don't you wish there were some sort of lodash currying system
 for numbers? 
 
-Numb is that. it is a compact(<10kb) library that helps you sanitize
+N is that. it is a compact(<10kb) library that helps you sanitize
 and transform numbers in a quick, compact manner. 
+
+## Awesome formula currying
+
+Currying `_N` calls always accumulates the result. 
+
+```javascript
+const a = _N('20');
+const b = _N(30);
+const c = _N(5);
+
+console.log( 'quadratic formula part one',
+  b.negate()
+    .minus(
+      b.sq()
+        .minus(a
+            .times(4)
+            .times(c)
+          )
+          .sqrt()
+    )
+  .div(a
+      .times(2)
+    ).value
+);
+// quadratic formula part one -1.30901699
+console.log( 'quadratic formula part two',
+  b.negate()
+      .plus( //<-- the difference
+        b.sq()
+            .minus(a
+                .times(4)
+                .times(c)
+              )
+            .sqrt()
+      )
+      .div(a
+        .times(2)
+      ).value
+);
+// 'quadratic formula part two', -0.191
+```
 
 ## constructor
 
@@ -15,9 +56,16 @@ Numb takes a value and an optional hook for fixing bad data.
 It also accepts a synchronous function that will be caught.
 
 _N extracts nested values from other _N's. 
+_N's result is immutable.
+
+It can create a valid value with:
+
+* a number
+* a string that parseFloat can make a number
+* a function that returns a number
+* an invalid value with a valid substitute;
 
 ```javascript
-
 console.log(_N(3).value);
 // 3
 console.log(_N('3').value);
@@ -36,12 +84,14 @@ function divide(a, b) {
 console.log(_N(() => divide(0, 0), 0).value)
 // 0
 
-console.log(_N(() => divide(0, 'string'),
+console.log(_N(
+    () => divide(0, 'string'),
     ({ message }) => {
       if (message === 'bad arguments') return -1;
       if (message === 'divide by zero') return 0;
       return null;
-    }).value)
+    }).value
+)
 // -1
 
 ```
